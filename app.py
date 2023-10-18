@@ -1,6 +1,7 @@
 import os
 import requests
 import json
+import speech
 
 import openai
 from flask import Flask, redirect, render_template, request, url_for
@@ -20,11 +21,14 @@ def index():
             temperature=0.8,
             max_tokens = 512
         )
+        text = response.choices[0].text
+        speech.generate_audio(text)
         return redirect(url_for("index", result=response.choices[0].text))
 
     result = request.args.get("result")
     print(result)
-    return render_template("index.html", result=result)
+    return_val = render_template("index.html", result=result)
+    return return_val
 
 
 def generate_prompt(topic,asker):
@@ -37,8 +41,7 @@ def generate_prompt(topic,asker):
     You tailor your script towards your viewers, who are {}. The narrator is the only character in your script.
     You get all your information from the following article only, but don't talk about your sources:
     {}
-     Generate a script for a one-minute video about {}. Return in this format:
-     Character: Says something
+     Generate a speech for a short video about {} using less than 100 words. 
      """.format(
         asker, article, topic.capitalize() # puts the inputted name of animal into prompt
     ) # return with a specific structure, seen: ____ character talking: ____
