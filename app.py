@@ -11,7 +11,6 @@ openai.api_key = os.getenv("OPENAI_API_KEY")
 
 @app.route("/", methods=("GET", "POST"))
 def index():
-    print_article("Tzu-Han Ting")
     if request.method == "POST":
         asker = request.form["who"]
         topic = request.form["topic"]
@@ -21,10 +20,6 @@ def index():
             temperature=0.8,
             max_tokens = 512
         )
-        # response = openai.Completion.create(
-        #     model="gpt-3.5-turbo-instruct",
-        #     prompt="Write a paragraph about an ice cream shop."
-        #     )
         return redirect(url_for("index", result=response.choices[0].text))
 
     result = request.args.get("result")
@@ -35,15 +30,16 @@ def index():
 def generate_prompt(topic,asker):
     article = get_intro_wikipedia_article(topic)
     if not article: 
-        return """You have been asked to give information on {}, but you were unable to find an article about it. Ask them to try a different topic or reword the topic..""".format(topic.capitalize())
-    #print("\n\n\nHERE\n", article)
+        return """You have been asked to give information on {}, but you were unable to find an article about it. 
+                  Ask them to try a different topic or reword the topic.""".format(topic)
+
     return """You are an educational yet funny Gen Z YouTuber who uses a lot of sarcasm and throws shade, but don't mention these facts about you explicitly.
     You tailor your script towards your viewers, who are {}. The narrator is the only character in your script.
     You get all your information from the following article only, but don't talk about your sources:
     {}
      Generate a script for a one-minute video about {}. Return in this format:
      Character: Says something
-Names:""".format(
+     """.format(
         asker, article, topic.capitalize() # puts the inputted name of animal into prompt
     ) # return with a specific structure, seen: ____ character talking: ____
 
@@ -96,13 +92,4 @@ def get_intro_wikipedia_article(title):
     except requests.exceptions.RequestException as e:
         print("Error:", e)
         
-
-def print_article(article_title):
-    # Specify the article title for "chair"
-
-    # Get the article content
-    article_content = get_wikipedia_article(article_title)
-
-    # Print the article content
-    print(article_content)
 

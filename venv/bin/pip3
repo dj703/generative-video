@@ -1,4 +1,4 @@
-#!/Users/jangd0/UROP/openai-quickstart-python/venv/bin/python
+#!/Users/jangd0/Documents/UROP/generative-video/venv/bin/python
 # -*- coding: utf-8 -*-
 import re
 import sys
