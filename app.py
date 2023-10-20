@@ -2,6 +2,7 @@ import os
 import requests
 import json
 import speech
+import blurbs
 
 import openai
 from flask import Flask, redirect, render_template, request, url_for
@@ -17,12 +18,19 @@ def index():
         topic = request.form["topic"]
         response = openai.Completion.create(    # sends API request
             model="gpt-3.5-turbo-instruct",
-            prompt=generate_prompt(topic, asker),
+            #prompt=generate_prompt(topic, asker),
+            prompt=generate_blurb(topic,asker),
             temperature=0.8,
             max_tokens = 512
         )
+        
+        filename = "neural-notes-intro-fifth-graders"
         text = response.choices[0].text
-        speech.generate_audio(text)
+        with open('speech-output/transcripts.txt', 'a') as f:
+            f.write('\n' + filename)
+            f.write(text + '\n\n')
+        
+        #speech.generate_audio(text, filename)
         return redirect(url_for("index", result=response.choices[0].text))
 
     result = request.args.get("result")
@@ -45,6 +53,26 @@ def generate_prompt(topic,asker):
      """.format(
         asker, article, topic.capitalize() # puts the inputted name of animal into prompt
     ) # return with a specific structure, seen: ____ character talking: ____
+
+def generate_blurb(topic, asker):
+    blurb = None
+    if topic == "Latent Lab":
+        blurb = blurbs.latent_blurb
+    elif topic == "NewsDive" or topic == "Newsdive":
+        blurb = blurbs.newsdive_blurb
+    elif topic == "Neural Notes":
+        blurb = blurbs.neural_notes_blurb
+    else:
+        blurb = blurbs.wildfire_blurb
+    #
+    return """You are a research assistant at the MIT Media Lab introducing your project, but don't mention yourself.
+    You tailor your explanation towards your audience, who are {}, and inject a little bit of humor and personality into your explanation.
+    You get all your information from the following article only, but don't talk about your sources:
+    {}
+     Generate a speech about {} using less than 100 words. 
+     """.format(
+        asker, blurb, topic.capitalize() # puts the inputted name of animal into prompt
+    )
 
 def get_wikipedia_article(title):
     # Wikipedia API endpoint

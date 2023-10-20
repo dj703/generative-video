@@ -5,15 +5,23 @@ import requests
 
 set_api_key("594c070f41584bfe35263d1c3fcd9a97")
 
-def generate_audio(words):
+words = """
+
+        """
+filename = ""
+    
+def generate_audio(words, filename):
     audio = generate(
         text=words,
         voice="Bella",
         model='eleven_monolingual_v1'
     )
-    play(audio)
+    #play(audio)
     save(
         audio=audio,
-        filename="speech-output/tests-again.mp3"
+        filename="speech-output/final-intros/" + filename + ".mp3"
     )
+
+if words and filename:
+    generate_audio(words,filename)
 
