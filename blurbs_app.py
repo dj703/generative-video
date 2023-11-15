@@ -1,15 +1,14 @@
 import os
 import requests
+import json
 import speech
 import blurbs
-import dalle
-import datetime
+
 import openai
 from flask import Flask, redirect, render_template, request, url_for
 
 app = Flask(__name__)
 openai.api_key = os.getenv("OPENAI_API_KEY")
-client = openai.OpenAI()
 
 
 @app.route("/", methods=("GET", "POST"))
@@ -17,24 +16,22 @@ def index():
     if request.method == "POST":
         asker = request.form["who"]
         topic = request.form["topic"]
-        response = client.chat.completions.create(    # sends API request
-            model="gpt-3.5-turbo", #-instruct
-            messages=[{"role": "user", "content": generate_prompt(topic,asker)}],
+        response = openai.Completion.create(    # sends API request
+            model="gpt-3.5-turbo-instruct",
+            #prompt=generate_prompt(topic, asker),
+            prompt=generate_blurb(topic,asker),
             temperature=0.8,
-            # max_tokens = 512
+            max_tokens = 512
         )
         
-        filename = topic.replace(' ', '_') + '__' + asker.replace(' ', '_')
-        text = str(response.choices[0].message.content)
-        print(text)
-
+        filename = "neural-notes-intro-fifth-graders"
+        text = response.choices[0].text
         with open('speech-output/transcripts.txt', 'a') as f:
-            f.write('\n' + filename + '  ' + str(datetime.datetime.now()))
+            f.write('\n' + filename)
             f.write(text + '\n\n')
         
-        dalle.generate_image(text, filename)
-        speech.generate_audio(text, filename)   
-        return redirect(url_for("index", result=response.choices[0].message.content))
+        #speech.generate_audio(text, filename)
+        return redirect(url_for("index", result=response.choices[0].text))
 
     result = request.args.get("result")
     print(result)
@@ -107,7 +104,7 @@ def get_wikipedia_article(title):
         print("Error:", e)
 
 
-def get_intro_wikipedia_article(title): # TO LOWERCASE
+def get_intro_wikipedia_article(title):
     # Wikipedia API endpoint
     url = "https://en.wikipedia.org/api/rest_v1/page/summary/" + title
 
