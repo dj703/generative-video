@@ -1,2 +1,6 @@
 **/speech-output
+**/image-output
+**/clip-output
+**/video-output
 **/venv
+**/__pycache__

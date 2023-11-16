@@ -19,7 +19,7 @@ def generate_audio(words, filename):
     #play(audio)
     save(
         audio=audio,
-        filename="speech-output/final-intros/" + filename + ".mp3"
+        filename="speech-output/" + filename + ".mp3"
     )
 
 if words and filename:

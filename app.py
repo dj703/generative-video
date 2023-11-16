@@ -1,10 +1,11 @@
 import os
-import requests
-import speech
 import blurbs
 import dalle
 import datetime
 import openai
+import requests
+import speech
+import video
 from flask import Flask, redirect, render_template, request, url_for
 
 app = Flask(__name__)
@@ -17,24 +18,37 @@ def index():
     if request.method == "POST":
         asker = request.form["who"]
         topic = request.form["topic"]
+        timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-")
+        filename = timestamp + topic.replace(' ', '_') + '-' + asker.replace(' ', '_')
         response = client.chat.completions.create(    # sends API request
             model="gpt-3.5-turbo", #-instruct
             messages=[{"role": "user", "content": generate_prompt(topic,asker)}],
-            temperature=0.8,
+            temperature=0.7,
             # max_tokens = 512
         )
-        
-        filename = topic.replace(' ', '_') + '__' + asker.replace(' ', '_')
         text = str(response.choices[0].message.content)
-        print(text)
+        #print(text)
+        sentences = text.split("|")
 
         with open('speech-output/transcripts.txt', 'a') as f:
-            f.write('\n' + filename + '  ' + str(datetime.datetime.now()))
+            f.write('\n' + filename + '\n')
             f.write(text + '\n\n')
         
-        dalle.generate_image(text, filename)
-        speech.generate_audio(text, filename)   
-        return redirect(url_for("index", result=response.choices[0].message.content))
+        with open('clip-output/' + filename + '.txt', 'w') as f: #there's got to be a better way to do this
+            for i in range(len(sentences)):
+                f.write("file \'" + filename + '_' + str(i) + ".mp4\'\n")
+        
+        for i in range(len(sentences)):
+            if not sentences[i]: 
+                continue
+            print(i)
+            print(sentences[i])
+            clipname = filename + '_' + str(i)
+            dalle.generate_image(sentences[i], clipname)
+            speech.generate_audio(sentences[i], clipname)   
+            video.create_clip(clipname)
+        video.concat_clips(filename)
+        return redirect(url_for("index", result=text)) #.replace('|','')
 
     result = request.args.get("result")
     print(result)
@@ -48,11 +62,16 @@ def generate_prompt(topic,asker):
         return """You have been asked to give information on {}, but you were unable to find an article about it. 
                   Ask them to try a different topic or reword the topic.""".format(topic)
 
-    return """You are an educational yet funny Gen Z YouTuber who uses a lot of sarcasm and throws shade, but don't mention these facts about you explicitly.
-    You tailor your script towards your viewers, who are {}. The narrator is the only character in your script.
-    You get all your information from the following article only, but don't talk about your sources:
+    return """You are an educational yet funny Gen Z YouTuber who uses a lot of sarcasm and throws shade.
+    You direct your speech towards your viewers, who are {}. 
+    Generate a speech for a short video about {} using less than 100 words. You must format using the character | between each and every sentence. 
+    Everything you talk about in your script comes from the following text only, but don't talk about your sources and don't explicitly mention anything from the prompt before this.
+    Text:
+    ###
     {}
-     Generate a speech for a short video about {} using less than 100 words. 
+    ###
+    Follow this format as explicitly as possible. Desired format:
+    This is the first sentence! | This is the second sentence. | This is the third sentence
      """.format(
         asker, article, topic.capitalize() # puts the inputted name of animal into prompt
     ) # return with a specific structure, seen: ____ character talking: ____
