@@ -16,25 +16,30 @@ client = openai.OpenAI()
 @app.route("/", methods=("GET", "POST"))
 def index():
     if request.method == "POST":
-        asker = request.form["who"]
-        topic = request.form["topic"]
-        timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-")
-        filename = timestamp + topic.replace(' ', '_') + '-' + asker.replace(' ', '_')
-        response = client.chat.completions.create(    # sends API request
-            model="gpt-3.5-turbo", #-instruct
-            messages=[{"role": "user", "content": generate_prompt(topic,asker)}],
-            temperature=0.7,
-            # max_tokens = 512
-        )
-        text = str(response.choices[0].message.content)
-        #print(text)
-        sentences = text.split("|")
+        sentences = None
+        i=0
+        while (sentences == None or len(sentences) <= 1) and i < 5:
+            asker = request.form["who"]
+            topic = request.form["topic"]
+            timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-")
+            filename = timestamp + topic.replace(' ', '_') + '-' + asker.replace(' ', '_')
+            content = generate_prompt(topic,asker)
+            response = client.chat.completions.create(    # sends API request
+                model="gpt-3.5-turbo", #-instruct
+                messages=[{"role": "user", "content": content[1]}],
+                temperature=0.7,
+                # max_tokens = 512
+            )
+            text = str(response.choices[0].message.content)
+            if not content[0]:  # didn't find the topic
+                return redirect(url_for("index", result=text))
+            sentences = text.split("|")
+            i+=1
 
-        with open('speech-output/transcripts.txt', 'a') as f:
+        with open('speech-output/transcripts.txt', 'a') as f: #write text into transcript
             f.write('\n' + filename + '\n')
             f.write(text + '\n\n')
-        
-        with open('clip-output/' + filename + '.txt', 'w') as f: #there's got to be a better way to do this
+        with open('clip-output/' + filename + '.txt', 'w') as f: #write list of filenames
             for i in range(len(sentences)):
                 f.write("file \'" + filename + '_' + str(i) + ".mp4\'\n")
         
@@ -44,11 +49,11 @@ def index():
             print(i)
             print(sentences[i])
             clipname = filename + '_' + str(i)
-            dalle.generate_image(sentences[i], clipname)
+            dalle.generate_image(topic, sentences[i], clipname)
             speech.generate_audio(sentences[i], clipname)   
             video.create_clip(clipname)
         video.concat_clips(filename)
-        return redirect(url_for("index", result=text)) #.replace('|','')
+        return redirect(url_for("index", result=text.replace('|','')))
 
     result = request.args.get("result")
     print(result)
@@ -59,10 +64,10 @@ def index():
 def generate_prompt(topic,asker):
     article = get_intro_wikipedia_article(topic)
     if not article: 
-        return """You have been asked to give information on {}, but you were unable to find an article about it. 
-                  Ask them to try a different topic or reword the topic.""".format(topic)
+        return (False, """You have been asked to give information on {}, but you were unable to find an article about it. 
+                  Ask them to try a different topic or reword the topic.""".format(topic))
 
-    return """You are an educational yet funny Gen Z YouTuber who uses a lot of sarcasm and throws shade.
+    return (True, """You are an educational yet funny Gen Z YouTuber who uses a lot of sarcasm and throws shade.
     You direct your speech towards your viewers, who are {}. 
     Generate a speech for a short video about {} using less than 100 words. You must format using the character | between each and every sentence. 
     Everything you talk about in your script comes from the following text only, but don't talk about your sources and don't explicitly mention anything from the prompt before this.
@@ -74,7 +79,7 @@ def generate_prompt(topic,asker):
     This is the first sentence! | This is the second sentence. | This is the third sentence
      """.format(
         asker, article, topic.capitalize() # puts the inputted name of animal into prompt
-    ) # return with a specific structure, seen: ____ character talking: ____
+    )) # return with a specific structure, seen: ____ character talking: ____
 
 def generate_blurb(topic, asker):
     blurb = None
