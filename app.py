@@ -16,9 +16,9 @@ client = openai.OpenAI()
 @app.route("/", methods=("GET", "POST"))
 def index():
     if request.method == "POST":
-        sentences = None
+        sentences = []
         i=0
-        while (sentences == None or len(sentences) <= 1) and i < 5:
+        while (len(sentences) <= 1 or len(sentences) >= 8) and i < 5:
             asker = request.form["who"]
             topic = request.form["topic"]
             timestamp = datetime.datetime.now().strftime("%Y%m%d-%H%M%S-")
@@ -28,13 +28,19 @@ def index():
                 model="gpt-3.5-turbo", #-instruct
                 messages=[{"role": "user", "content": content[1]}],
                 temperature=0.7,
-                # max_tokens = 512
+                max_tokens = 512
             )
             text = str(response.choices[0].message.content)
             if not content[0]:  # didn't find the topic
                 return redirect(url_for("index", result=text))
             sentences = text.split("|")
+            
+            print("Run ", str(i), ", length ", len(sentences))
+            print(sentences)
             i+=1
+        if len(sentences) == 1: # testing out format with period not |. Known glitches: period in name
+                sentences = text.split('.')
+        sentences = [s for s in sentences if s != ""]
 
         with open('speech-output/transcripts.txt', 'a') as f: #write text into transcript
             f.write('\n' + filename + '\n')
@@ -42,27 +48,30 @@ def index():
         with open('clip-output/' + filename + '.txt', 'w') as f: #write list of filenames
             for i in range(len(sentences)):
                 f.write("file \'" + filename + '_' + str(i) + ".mp4\'\n")
+            f.write("file \'" + "blank5.mp4\'\n")
         
         for i in range(len(sentences)):
-            if not sentences[i]: 
-                continue
             print(i)
             print(sentences[i])
             clipname = filename + '_' + str(i)
             dalle.generate_image(topic, sentences[i], clipname)
             speech.generate_audio(sentences[i], clipname)   
             video.create_clip(clipname)
-        video.concat_clips(filename)
-        return redirect(url_for("index", result=text.replace('|','')))
+        video_url = video.concat_clips(filename)
+        # video_url = "../static/20231127-165806-Europa-astronomer_working_on_the_Giant_Magellan_Telescope.mp4"
+        return redirect(url_for("index", result=text.replace('|',''), video_url=video_url)) #, vid="static/" + filename + ".mp4"
 
     result = request.args.get("result")
+    video_url = request.args.get("video_url")
     print(result)
-    return_val = render_template("index.html", result=result)
+    return_val = render_template("index.html", result=result, video_url=video_url) #, vid=vid
+    print("every reload runs through here")
     return return_val
 
 
 def generate_prompt(topic,asker):
     article = get_intro_wikipedia_article(topic)
+    # article = get_wikipedia_article(topic)
     if not article: 
         return (False, """You have been asked to give information on {}, but you were unable to find an article about it. 
                   Ask them to try a different topic or reword the topic.""".format(topic))
@@ -75,7 +84,7 @@ def generate_prompt(topic,asker):
     ###
     {}
     ###
-    Follow this format as explicitly as possible. Desired format:
+    Follow this format as explicitly as possible. You must use this format with the vertical bar character. Desired format:
     This is the first sentence! | This is the second sentence. | This is the third sentence
      """.format(
         asker, article, topic.capitalize() # puts the inputted name of animal into prompt

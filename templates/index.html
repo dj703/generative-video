@@ -9,6 +9,16 @@
 </head>
 
 <body>
+  {% if result %}
+  
+  <video width="600" height="600" controls>
+    <source src="{{ video_url }}" type="video/mp4">
+    Your browser does not support the video tag.
+  </video>
+  <!-- <h5>Script</h5> -->
+  <div class="result"><p><b>Script:</b> {{ result }}</p></div>
+  {% endif %}
+
   <img src="{{ url_for('static', filename='dog.png') }}" class="icon" />
   <h3>Generate a video</h3>
   <form action="/" method="post">
@@ -16,8 +26,5 @@
     <input type="text" name="topic" placeholder="Enter a topic" required />
     <input type="submit" value="Generate" />
   </form>
-  {% if result %}
-  <div class="result">{{ result }}</div>
-  <!-- add in a video here -->
-  {% endif %}
+  
 </body>

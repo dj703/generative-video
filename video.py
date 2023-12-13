@@ -17,17 +17,17 @@ def create_clip(filename):
     subprocess.run(command)
 
 def concat_clips(filename): #filename is a text file containing the names of all the clips
+    path = "static/" + filename + ".mp4"
     command = [
         'ffmpeg',
-        '-f', 'concat',       
+        '-f', 'concat',   
+        '-safe', '0',    
         '-i', "clip-output/" + filename + ".txt",      
         '-c', 'copy',     
-        "video-output/" + filename + ".mp4"
+        path
     ]
     subprocess.run(command)
+    return path
 
+# concat_clips("20231129-133649-Memes-baby_boomer")
 
-
-
-# create_clip("20231115-110102-Harry_Potter-baby_boomer_2.png","20231115-110102-Harry_Potter-baby_boomer_2.mp3", "20231115-110102-Harry_Potter-baby_boomer_2")
-# concat_clips("20231115-141346-MIT_Media_Lab-a_fifth_grader")
