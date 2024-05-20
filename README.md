@@ -9,7 +9,7 @@ python -m venv venv
 pip install -r requirements.txt
 flask run
 ```
-You may also need to set the environment variable `OPENAI_API_KEY`.
+You may will need to set the environment variable `OPENAI_API_KEY` to your key; the key in this repository has been disabled.
 
 Video files are currently deposited in the `static` folder.
 
