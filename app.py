@@ -11,6 +11,8 @@ from flask import Flask, redirect, render_template, request, url_for
 app = Flask(__name__)
 openai.api_key = os.getenv("OPENAI_API_KEY")
 client = openai.OpenAI()
+root = os.path.dirname(__file__)
+print(root)
 
 
 @app.route("/", methods=("GET", "POST"))
@@ -57,7 +59,7 @@ def index():
             dalle.generate_image(topic, sentences[i], clipname)
             speech.generate_audio(sentences[i], clipname)   
             video.create_clip(clipname)
-        video_url = video.concat_clips(filename)
+        video_url = video.concat_clips(filename) 
         # video_url = "../static/20231127-165806-Europa-astronomer_working_on_the_Giant_Magellan_Telescope.mp4"
         return redirect(url_for("index", result=text.replace('|',''), video_url=video_url)) #, vid="static/" + filename + ".mp4"
 
@@ -72,6 +74,7 @@ def index():
 def generate_prompt(topic,asker):
     article = get_intro_wikipedia_article(topic)
     # article = get_wikipedia_article(topic)
+    print(article)
     if not article: 
         return (False, """You have been asked to give information on {}, but you were unable to find an article about it. 
                   Ask them to try a different topic or reword the topic.""".format(topic))
@@ -142,12 +145,13 @@ def get_wikipedia_article(title):
 
 def get_intro_wikipedia_article(title): # TO LOWERCASE
     # Wikipedia API endpoint
-    url = "https://en.wikipedia.org/api/rest_v1/page/summary/" + title
+    url = "https://en.wikipedia.org/api/rest_v1/page/summary/" + title.lower()
 
     try:
         # Make a request to the Wikipedia API
         response = requests.get(url)
         response_data = response.json()
+        print(response_data)
 
         # Extract the introductory section
         if 'extract' in response_data:

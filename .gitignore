@@ -1,6 +1,7 @@
-**/speech-output
-**/image-output
-**/clip-output
-**/video-output
-**/venv
-**/__pycache__
+speech-output/
+image-output/
+clip-output/
+video-output/
+static/
+venv/
+__pycache__/
